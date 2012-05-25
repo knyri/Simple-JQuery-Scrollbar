@@ -1,13 +1,12 @@
-/*!
+/**!
  * Scrollbar
  * @author Kenneth Pierce
  */
-var SimpleScroller={
+var SimpleScrollbar={
 	wrapInScroller: function(item,options) {
 		options=options?options:{};
 		var $=jQuery;
-		item=$(item);
-		var scrollwrapper=$('<div class="scroll-wrapper"/>'),
+		var scrollwrapper=$(item),
 			scrollcontent=$('<div class="scroll-content"/>'),
 			scroll=$('<div class="scrollbar" style="cursor:default"/>'),
 			handle=$('<button type="button" class="scrollbar-handle"/>'),
@@ -46,12 +45,12 @@ var SimpleScroller={
 				return false;
 			};
 
+		scrollwrapper.addClass('scroll-wrapper');
 		track.append(handle);
 		scroll.append(up);
 		scroll.append(track);
 		scroll.append(down);
-		scrollcontent=item.wrap(scrollcontent).parent();
-		scrollwrapper=scrollcontent.wrap(scrollwrapper).parent();
+		scrollcontent=$(scrollwrapper.wrapInner(scrollcontent).find('.scroll-content').get(0));
 		scrollwrapper.append(scroll);
 
 		//scroll button events
@@ -68,24 +67,26 @@ var SimpleScroller={
 		handle.bind('mousemove',scrollListener);
 		track.bind('mousemove',scrollListener);
 
+		scrollcontent.css('position','absolute');
+		scrollcontent.css('top','0');
+		scrollcontent.css('left','0');
 
-		//do all this stuff AFTER everything has been rendered(just in case)
+		scrollwrapper.css('position','relative');
+		
+		scroll.css('cursor','default');
+		scroll.css('position','absolute');
+		scroll.css('top','0');
+		scroll.css('right','0');
+
+		handle.css('position','relative');
+		handle.css('top','0');
+		/* Had some strange cases where not everything had rendered yet.
+		 * So, doing all the computational stuff on a delay.
+		 */
 		setTimeout(function(){
-			scrollcontent.css('position','absolute');
-			scrollcontent.css('top','0');
-			scrollcontent.css('left','0');
-			scrollcontent.css('width',(scrollwrapper.width()-scroll.width()-2)+'px');
-			scrollcontent.css('height',scrollcontent.children().height()+'px');
-	
-			scrollwrapper.css('position','relative');
-			scrollwrapper.css('height','100%');
-			scrollwrapper.css('width','100%');
-	
-			scroll.css('cursor','default');
-			scroll.css('position','absolute');
-			scroll.css('top','0');
-			scroll.css('right','0');
-	
+			scrollcontent.css('width',(scrollwrapper.width()-scroll.outerWidth(true))+'px');
+			//scrollcontent.css('height',scrollcontent.children().height()+'px');
+
 			var scrollbarHeight=scrollwrapper.innerHeight()-scroll.outerHeight()+scroll.height();
 			scroll.css('height',scrollbarHeight+'px');
 
@@ -93,11 +94,9 @@ var SimpleScroller={
 
 			handleHeightRatio=scrollwrapper.height()/scrollcontent.height();//ratio
 			if(handleHeightRatio>1) handleHeightRatio=1;
-			if(!options.handleHeightFixed) {//has the height been set in the css?
+			if(!options.handleheightfixed) {//has the height been set in the css?
 				handle.css('height',track.height()*handleHeightRatio+'px');
 			}
-			handle.css('position','relative');
-			handle.css('top','0');
 			windowScrollArea=(scrollcontent.height()-scrollwrapper.height());
 			trackScrollArea=track.innerHeight()-handle.height();
 		},1000);
