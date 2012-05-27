@@ -17,60 +17,66 @@ var SimpleScrollbar=function(item,options){
 		.wrapInner($('<div class="scroll-area"/>'));
 	t.$scrollarea=$(item.find('.scroll-area').get(0));
 	t.$scrollcontent=$(item.find('.scroll-content').get(0));
-	t.$scrollbar=$('<div class="scrollbar" style="cursor:default"/>');
-	t.$handle=$('<button type="button" class="scrollbar-handle"/>');
-	t.$track=$('<div class="scrollbar-track"/>');
+	t.$vscrollbar=$('<div class="scrollbar" style="cursor:default"/>');
+	t.$vhandle=$('<button type="button" class="scrollbar-handle"/>');
+	t.$vtrack=$('<div class="scrollbar-track vertical"/>');
 	t.$up=$('<div class="scrollbar-up"><button type="button"></button></div>');
 	t.$down=$('<div class="scrollbar-down"><button type="button"></button></div>');
 	
 	t.scrollDownTimer=null;
 	t.scrollUpTimer=null;
 	t.handleHeightRatio=0;
-	t.windowScrollArea=0;
-	t.trackScrollArea=0;
+	t.vScrollArea=0;
+	t.vScrollLimit=0;
 //timed scroll events
-	t.downScrollFun=function() {
+	t.scrollDown=function() {
 		if(t.handleHeightRatio==1) return;
-		var top=t.$scrollarea.scrollTop()+t.options.scrollAmount;//parseInt(scrollcontent.css('top'))-12;
-		if(top>t.windowScrollArea) top=t.windowScrollArea;
-		t.$scrollarea.scrollTop(top);//scrollcontent.css('top',top+'px');
-		t.$handle.css('top',(top/t.windowScrollArea)*t.trackScrollArea+'px');
+		var top=t.$scrollarea.scrollTop()+t.options.scrollAmount;
+		if(top>t.vScrollArea) top=t.vScrollArea;
+		t.$scrollarea.scrollTop(top);
+		t.$vhandle.css('top',(top/t.vScrollArea)*t.vScrollLimit+'px');
 	};
-	t.upScrollFun=function() {
+	t.scrollUp=function() {
 		if(t.handleHeightRatio==1) return;
-		var top=t.$scrollarea.scrollTop()-t.options.scrollAmount;//parseInt(scrollcontent.css('top'))+12;
+		var top=t.$scrollarea.scrollTop()-t.options.scrollAmount;
 		if(top<0) top=0;
-		t.$scrollarea.scrollTop(top);//scrollcontent.css('top',top+'px');
-		t.$handle.css('top',(top/t.windowScrollArea)*t.trackScrollArea+'px');
+		t.$scrollarea.scrollTop(top);
+		t.$vhandle.css('top',(top/t.vScrollArea)*t.vScrollLimit+'px');
+	};
+	t.scrollLeft=function(){
+		//TODO: this
+	};
+	t.scrollRight=function(){
+		//TODO: this
 	};
 	t.scrollListener=function(e) {
 		if(t.handleHeightRatio!=1) {
-			var top=e.pageY-t.$track.offset().top-t.$handle.height()/2;
+			var top=e.pageY-t.$vtrack.offset().top-t.$vhandle.height()/2;
 			if(top<0) top=0;
-			else if(top>t.trackScrollArea) top=t.trackScrollArea;
-			var scrollPos=(top/t.trackScrollArea)*t.windowScrollArea;
-			t.$scrollarea.scrollTop(scrollPos);//scrollcontent.css('top',scrollPos+'px');
-			t.$handle.css('top',top+'px');
+			else if(top>t.vScrollLimit) top=t.vScrollLimit;
+			var scrollPos=(top/t.vScrollLimit)*t.vScrollArea;
+			t.$scrollarea.scrollTop(scrollPos);
+			t.$vhandle.css('top',top+'px');
 		}
 		return false;
 	};
 	t.calculateLayout=function(){
-		t.$scrollcontent.css('width',(t.$scrollarea.width()-t.$scrollbar.outerWidth(true))+'px');
+		t.$scrollcontent.css('width',(t.$scrollarea.width()-t.$vscrollbar.outerWidth(true))+'px');
 
 		t.$scrollarea.css('height',item.innerHeight()-(t.$scrollarea.outerHeight(true)-t.$scrollarea.innerHeight())+'px');
 
-		var scrollbarHeight=t.$scrollarea.innerHeight()-t.$scrollbar.outerHeight()+t.$scrollbar.height();
-		t.$scrollbar.css('height',scrollbarHeight+'px');
+		var scrollbarHeight=t.$scrollarea.innerHeight()-t.$vscrollbar.outerHeight()+t.$vscrollbar.height();
+		t.$vscrollbar.css('height',scrollbarHeight+'px');
 
-		t.$track.css('height',(t.$scrollarea.height()-t.$up.height()-t.$down.height()-(t.$track.outerHeight()-t.$track.height()))+'px');
+		t.$vtrack.css('height',(t.$scrollarea.height()-t.$up.outerHeight(true)-t.$down.outerHeight(true)-(t.$vtrack.outerHeight(true)-t.$vtrack.height()))+'px');
 
 		t.handleHeightRatio=t.$scrollarea.height()/t.$scrollcontent.height();//ratio
 		if(t.handleHeightRatio>1) t.handleHeightRatio=1;
 		if(t.options.autoSizeHandle) {//has the height been set in the css?
-			t.$handle.css('height',t.$track.height()*t.handleHeightRatio+'px');
+			t.$vhandle.css('height',t.$vtrack.height()*t.handleHeightRatio+'px');
 		}
-		t.windowScrollArea=(t.$scrollcontent.height()-t.$scrollarea.height());
-		t.trackScrollArea=t.$track.innerHeight()-t.$handle.height();
+		t.vScrollArea=(t.$scrollcontent.height()-t.$scrollarea.height());
+		t.vScrollLimit=t.$vtrack.height()-t.$vhandle.outerHeight(true);
 	};
 	t.scrollTo=function(x){
 		t.$scrollarea.scrollTop(x);
@@ -78,54 +84,46 @@ var SimpleScrollbar=function(item,options){
 	/* ********************************
 	 * finish building the layout(the scrollbar)
 	 */
-	t.$track.append(t.$handle);
-	t.$scrollbar.append(t.$up);
-	t.$scrollbar.append(t.$track);
-	t.$scrollbar.append(t.$down);
-	item.append(t.$scrollbar);
+	item.append(
+		t.$vscrollbar
+			.append(t.$up)
+			.append(t.$vtrack.append(t.$vhandle))
+			.append(t.$down)
+	);
 
 
 	/* *********************************
 	 * Attach the events
 	 */
 	t.$down.children().bind('mousedown',function(e) {
-		t.scrollDownTimer=setInterval(t.downScrollFun,t.options.scrollDelay);
+		t.scrollDownTimer=setInterval(t.scrollDown,t.options.scrollDelay);
 		return false;
 	});
-	t.$down.children().click(t.downScrollFun);//iPad fix
-	//scroll if held down
+	t.$down.children().click(t.scrollDown);//iPad fix
 	t.$up.children().bind('mousedown',function(e) {
-		t.scrollUpTimer=setInterval(t.upScrollFun,t.options.scrollDelay);
+		t.scrollUpTimer=setInterval(t.scrollUp,t.options.scrollDelay);
 		return false;
 	});
-	t.$up.children().click(t.upScrollFun);//iPad fix
-	t.$handle.bind('mousedown',function(e) {
-		//mouseDown=true;
+	t.$up.children().click(t.scrollUp);//iPad fix
+	t.$vhandle.bind('mousedown',function(e) {
 		$(document).bind('mousemove',t.scrollListener);
 		return false;
-	});//set 'drag' flag
-	//clear timers and 'drag' flag
+	});
+	//clear timers
 	$(document).bind('mouseup',function(e) {
-		//mouseDown=false;
 		clearInterval(t.scrollUpTimer);
 		clearInterval(t.scrollDownTimer);
 		$(document).unbind('mousemove',t.scrollListener);
 	});
-	//scrollcontent.css('position','absolute');
-	//scrollcontent.css('top','0');
-	//scrollcontent.css('left','0');
+
 
 	if(item.css('position')=='static')
 		item.css('position','relative');
 	t.$scrollarea.css('overflow','hidden');
-	
-	t.$scrollbar.css('cursor','default');
-	t.$scrollbar.css('position','absolute');
-	t.$scrollbar.css('top','0');
-	t.$scrollbar.css('right','0');
+	t.$vscrollbar.css({'cursor':'default','position':'absolute','top':'0','right':'0'});
+	t.$vhandle.css({'position':'relative','top':'0'});
 
-	t.$handle.css('position','relative');
-	t.$handle.css('top','0');
+
 	/* Had some strange cases where not everything had rendered yet.
 	 * So, doing all the computational stuff on a delay.
 	 */
