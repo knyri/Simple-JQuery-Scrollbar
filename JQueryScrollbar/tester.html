@@ -71,8 +71,10 @@ article,aside,details,figcaption,figure,footer,header,hgroup,menu,nav,section{di
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 <script type="text/javascript" src="scrollbar.class.js"></script>
 <script type="text/javascript">
+var scroller=null;
 $(document).ready(function(){
-	SimpleScrollbar.wrapInScroller('#testimonials',{handleheightfixed:true});
+	scroller=new SimpleScrollbar('#testimonials',{autoSizeHandle:false});
+	//SimpleScrollbar.wrapInScroller('#testimonials',{handleheightfixed:true});
 });</script>
 </head>
 <body>

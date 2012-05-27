@@ -1,104 +1,133 @@
 /**!
  * Scrollbar
+ * 
+ * Options:
+ *  scrollDelay: time in milliseconds between scroll increments if one of the scroll buttons is held down
+ *  scrollAmount: number of pixels to scroll when a scroll button has been pressed
+ *  autoSizeHandle: set to false if the handle size is set in the CSS
+ *  drawDelay: amount of time in milliseconds to wait before laying out the components
+ * 
  * @author Kenneth Pierce
  */
-var SimpleScrollbar={
-	wrapInScroller: function(item,options) {
-		options=options?options:{};
-		var $=jQuery;
-		var scrollwrapper=$(item),
-			scrollcontent=$('<div class="scroll-content"/>'),
-			scroll=$('<div class="scrollbar" style="cursor:default"/>'),
-			handle=$('<button type="button" class="scrollbar-handle"/>'),
-			track=$('<div class="scrollbar-track"/>'),
-			up=$('<div class="scrollbar-up"><button type="button"></button></div>'),
-			down=$('<div class="scrollbar-down"><button type="button"></button></div>'),
-			mouseDown=false,
-			scrollDownTimer=null,
-			scrollUpTimer=null,
-			handleHeightRatio=0,
-			windowScrollArea=0,
-			trackScrollArea=0,
-		//timed scroll events
-			downScrollFun=function() {
-				if(handleHeightRatio==1) return;
-				var top=parseInt(scrollcontent.css('top'))-12;
-				if(top<(-windowScrollArea)) top=(-windowScrollArea);
-				scrollcontent.css('top',top+'px');
-				handle.css('top',(0-top/windowScrollArea*trackScrollArea)+'px');
-			},
-			upScrollFun=function() {
-				if(handleHeightRatio==1) return;
-				var top=parseInt(scrollcontent.css('top'))+12;
-				if(top>0) top=0;scrollcontent.css('top',top+'px');
-				handle.css('top',(0-top/windowScrollArea*trackScrollArea)+'px');
-			},
-			scrollListener=function(e) {
-				if(mouseDown&&handleHeightRatio!=1) {
-					var top=e.pageY-track.offset().top-handle.height()/2;
-					if(top<0) top=0;
-					else if(top>trackScrollArea) top=trackScrollArea;
-					var scrollPos=0-(top/trackScrollArea)*windowScrollArea;
-					scrollcontent.css('top',scrollPos+'px');
-					handle.css('top',top+'px');
-				}
-				return false;
-			};
+var SimpleScrollbar=function(item,options){
+	var t=this;
+	t.options=$.extend({scrollDelay:200,scrollAmount:12,autoSizeHandle:true,drawDelay:1000},options);
+	item=$(item).addClass('scroll-wrapper')
+		.wrapInner($('<div class="scroll-content"/>'))
+		.wrapInner($('<div class="scroll-area"/>'));
+	t.$scrollarea=$(item.find('.scroll-area').get(0));
+	t.$scrollcontent=$(item.find('.scroll-content').get(0));
+	t.$scrollbar=$('<div class="scrollbar" style="cursor:default"/>');
+	t.$handle=$('<button type="button" class="scrollbar-handle"/>');
+	t.$track=$('<div class="scrollbar-track"/>');
+	t.$up=$('<div class="scrollbar-up"><button type="button"></button></div>');
+	t.$down=$('<div class="scrollbar-down"><button type="button"></button></div>');
+	
+	t.scrollDownTimer=null;
+	t.scrollUpTimer=null;
+	t.handleHeightRatio=0;
+	t.windowScrollArea=0;
+	t.trackScrollArea=0;
+//timed scroll events
+	t.downScrollFun=function() {
+		if(t.handleHeightRatio==1) return;
+		var top=t.$scrollarea.scrollTop()+t.options.scrollAmount;//parseInt(scrollcontent.css('top'))-12;
+		if(top>t.windowScrollArea) top=t.windowScrollArea;
+		t.$scrollarea.scrollTop(top);//scrollcontent.css('top',top+'px');
+		t.$handle.css('top',(top/t.windowScrollArea)*t.trackScrollArea+'px');
+	};
+	t.upScrollFun=function() {
+		if(t.handleHeightRatio==1) return;
+		var top=t.$scrollarea.scrollTop()-t.options.scrollAmount;//parseInt(scrollcontent.css('top'))+12;
+		if(top<0) top=0;
+		t.$scrollarea.scrollTop(top);//scrollcontent.css('top',top+'px');
+		t.$handle.css('top',(top/t.windowScrollArea)*t.trackScrollArea+'px');
+	};
+	t.scrollListener=function(e) {
+		if(t.handleHeightRatio!=1) {
+			var top=e.pageY-t.$track.offset().top-t.$handle.height()/2;
+			if(top<0) top=0;
+			else if(top>t.trackScrollArea) top=t.trackScrollArea;
+			var scrollPos=(top/t.trackScrollArea)*t.windowScrollArea;
+			t.$scrollarea.scrollTop(scrollPos);//scrollcontent.css('top',scrollPos+'px');
+			t.$handle.css('top',top+'px');
+		}
+		return false;
+	};
+	t.calculateLayout=function(){
+		t.$scrollcontent.css('width',(t.$scrollarea.width()-t.$scrollbar.outerWidth(true))+'px');
 
-		scrollwrapper.addClass('scroll-wrapper');
-		track.append(handle);
-		scroll.append(up);
-		scroll.append(track);
-		scroll.append(down);
-		scrollcontent=$(scrollwrapper.wrapInner(scrollcontent).find('.scroll-content').get(0));
-		scrollwrapper.append(scroll);
+		t.$scrollarea.css('height',item.innerHeight()-(t.$scrollarea.outerHeight(true)-t.$scrollarea.innerHeight())+'px');
 
-		//scroll button events
-		//scroll if held down
-		down.children().bind('mousedown',function(e) { scrollDownTimer=setInterval(downScrollFun,500);return false; });
-		down.children().click(downScrollFun);//iPad fix
-		//scroll if held down
-		up.children().bind('mousedown',function(e) { scrollUpTimer=setInterval(upScrollFun,500);return false; });
-		up.children().click(upScrollFun);//iPad fix
-		handle.bind('mousedown',function(e) { mouseDown=true;return false; });//set 'drag' flag
-		//clear timers and 'drag' flag
-		$(document).bind('mouseup',function(e) { mouseDown=false;clearInterval(scrollUpTimer);clearInterval(scrollDownTimer); });
-		//do 'drag' operation
-		handle.bind('mousemove',scrollListener);
-		track.bind('mousemove',scrollListener);
+		var scrollbarHeight=t.$scrollarea.innerHeight()-t.$scrollbar.outerHeight()+t.$scrollbar.height();
+		t.$scrollbar.css('height',scrollbarHeight+'px');
 
-		scrollcontent.css('position','absolute');
-		scrollcontent.css('top','0');
-		scrollcontent.css('left','0');
+		t.$track.css('height',(t.$scrollarea.height()-t.$up.height()-t.$down.height()-(t.$track.outerHeight()-t.$track.height()))+'px');
 
-		scrollwrapper.css('position','relative');
-		
-		scroll.css('cursor','default');
-		scroll.css('position','absolute');
-		scroll.css('top','0');
-		scroll.css('right','0');
+		t.handleHeightRatio=t.$scrollarea.height()/t.$scrollcontent.height();//ratio
+		if(t.handleHeightRatio>1) t.handleHeightRatio=1;
+		if(t.options.autoSizeHandle) {//has the height been set in the css?
+			t.$handle.css('height',t.$track.height()*t.handleHeightRatio+'px');
+		}
+		t.windowScrollArea=(t.$scrollcontent.height()-t.$scrollarea.height());
+		t.trackScrollArea=t.$track.innerHeight()-t.$handle.height();
+	};
+	t.scrollTo=function(x){
+		t.$scrollarea.scrollTop(x);
+	};
+	/* ********************************
+	 * finish building the layout(the scrollbar)
+	 */
+	t.$track.append(t.$handle);
+	t.$scrollbar.append(t.$up);
+	t.$scrollbar.append(t.$track);
+	t.$scrollbar.append(t.$down);
+	item.append(t.$scrollbar);
 
-		handle.css('position','relative');
-		handle.css('top','0');
-		/* Had some strange cases where not everything had rendered yet.
-		 * So, doing all the computational stuff on a delay.
-		 */
-		setTimeout(function(){
-			scrollcontent.css('width',(scrollwrapper.width()-scroll.outerWidth(true))+'px');
-			//scrollcontent.css('height',scrollcontent.children().height()+'px');
 
-			var scrollbarHeight=scrollwrapper.innerHeight()-scroll.outerHeight()+scroll.height();
-			scroll.css('height',scrollbarHeight+'px');
+	/* *********************************
+	 * Attach the events
+	 */
+	t.$down.children().bind('mousedown',function(e) {
+		t.scrollDownTimer=setInterval(t.downScrollFun,t.options.scrollDelay);
+		return false;
+	});
+	t.$down.children().click(t.downScrollFun);//iPad fix
+	//scroll if held down
+	t.$up.children().bind('mousedown',function(e) {
+		t.scrollUpTimer=setInterval(t.upScrollFun,t.options.scrollDelay);
+		return false;
+	});
+	t.$up.children().click(t.upScrollFun);//iPad fix
+	t.$handle.bind('mousedown',function(e) {
+		//mouseDown=true;
+		$(document).bind('mousemove',t.scrollListener);
+		return false;
+	});//set 'drag' flag
+	//clear timers and 'drag' flag
+	$(document).bind('mouseup',function(e) {
+		//mouseDown=false;
+		clearInterval(t.scrollUpTimer);
+		clearInterval(t.scrollDownTimer);
+		$(document).unbind('mousemove',t.scrollListener);
+	});
+	//scrollcontent.css('position','absolute');
+	//scrollcontent.css('top','0');
+	//scrollcontent.css('left','0');
 
-			track.css('height',(scrollwrapper.height()-up.height()-down.height()-(track.outerHeight()-track.height()))+'px');
+	if(item.css('position')=='static')
+		item.css('position','relative');
+	t.$scrollarea.css('overflow','hidden');
+	
+	t.$scrollbar.css('cursor','default');
+	t.$scrollbar.css('position','absolute');
+	t.$scrollbar.css('top','0');
+	t.$scrollbar.css('right','0');
 
-			handleHeightRatio=scrollwrapper.height()/scrollcontent.height();//ratio
-			if(handleHeightRatio>1) handleHeightRatio=1;
-			if(!options.handleheightfixed) {//has the height been set in the css?
-				handle.css('height',track.height()*handleHeightRatio+'px');
-			}
-			windowScrollArea=(scrollcontent.height()-scrollwrapper.height());
-			trackScrollArea=track.innerHeight()-handle.height();
-		},1000);
-	}
+	t.$handle.css('position','relative');
+	t.$handle.css('top','0');
+	/* Had some strange cases where not everything had rendered yet.
+	 * So, doing all the computational stuff on a delay.
+	 */
+	setTimeout(t.calculateLayout,t.options.drawDelay);
 };
