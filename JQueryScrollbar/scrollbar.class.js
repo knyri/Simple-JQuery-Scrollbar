@@ -105,8 +105,9 @@ var SimpleScrollbar=function(item,options){
 		return false;
 	});
 	t.$up.children().click(t.scrollUp);//iPad fix
-	t.$vhandle.bind('mousedown',function(e) {
+	t.$vtrack.bind('mousedown',function(e) {
 		$(document).bind('mousemove',t.scrollListener);
+		t.scrollListener(e);
 		return false;
 	});
 	//clear timers
