@@ -61,6 +61,11 @@ var SimpleScrollbar=function(item,options){
 		return false;
 	};
 	t.calculateLayout=function(){
+		if(item.css('position')=='static')
+			item.css('position','relative');
+		t.$scrollarea.css('overflow','hidden');
+		t.$vscrollbar.css({'cursor':'default','position':'absolute','top':'0','right':'0'});
+		t.$vhandle.css({'position':'relative','top':'0'});
 		t.$scrollcontent.css('width',(t.$scrollarea.width()-t.$vscrollbar.outerWidth(true))+'px');
 
 		t.$scrollarea.css('height',item.innerHeight()-(t.$scrollarea.outerHeight(true)-t.$scrollarea.innerHeight())+'px');
@@ -116,13 +121,6 @@ var SimpleScrollbar=function(item,options){
 		clearInterval(t.scrollDownTimer);
 		$(document).unbind('mousemove',t.scrollListener);
 	});
-
-
-	if(item.css('position')=='static')
-		item.css('position','relative');
-	t.$scrollarea.css('overflow','hidden');
-	t.$vscrollbar.css({'cursor':'default','position':'absolute','top':'0','right':'0'});
-	t.$vhandle.css({'position':'relative','top':'0'});
 
 
 	/* Had some strange cases where not everything had rendered yet.
